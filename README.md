@@ -91,7 +91,7 @@ After committing a clean source revision and building Release:
 python scripts\package.py
 ```
 
-This publishes a framework-dependent root-level App Service ZIP (`Contoso.Web.dll`, startup `dotnet Contoso.Web.dll`), embeds `candidate.json` with the exact source SHA and per-file SHA256 hashes, and emits `SHA256SUMS` for the ZIP. Existing `artifacts\publish` output must be removed before re-packaging. Build/publish does not deploy.
+This publishes a framework-dependent root-level App Service ZIP (`Contoso.Web.dll`, startup `dotnet Contoso.Web.dll`), embeds `candidate.json` with the exact source SHA and per-file SHA256 hashes, and emits `SHA256SUMS` for the ZIP. Deterministic SourceLink paths are normalized; packaging rejects embedded checkout/home paths. Existing `artifacts\publish` output must be removed before re-packaging. Build/publish does not deploy.
 
 The central **contoso-platform** repository owns the one azd/Bicep lifecycle, hosting, identity, network, telemetry permissions and promotion of the **same immutable artifact** through dev/staging. There is intentionally no `azure.yaml`, app-owned IaC, deployment job or Azure credential here.
 

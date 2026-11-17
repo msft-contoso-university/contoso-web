@@ -24,6 +24,14 @@ def main():
         cwd=ROOT, check=True,
     )
     files = sorted(path for path in output.rglob("*") if path.is_file())
+    private_path_forms = set()
+    for path in (str(ROOT), str(Path.home())):
+        for form in (path, path.replace("\\", "/")):
+            private_path_forms.add(form.encode())
+            private_path_forms.add(json.dumps(form)[1:-1].encode())
+    for path in files:
+        if any(form in path.read_bytes() for form in private_path_forms):
+            raise ValueError(f"{path.name} embeds a private build path; check deterministic SourceLink settings")
     manifest = {
         "service": "contoso-web",
         "sourceCommit": sha,
