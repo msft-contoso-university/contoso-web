@@ -103,4 +103,52 @@ Native CodeQL default setup remains enabled and unchanged. Candidate SARIF is re
 
 ## Evidence limits
 
+### Offline affected-consumer compatibility
+
+Run `dotnet test tests\Contoso.Web.Tests --filter TestCategory=ConsumerCompatibility`.
+With neither environment variable present this executes synthetic positive fixtures and
+negative cases through the real typed HTTP clients, including missing/renamed required
+fields, nested invalid data, strict JSON number types and nullable grades. These checks
+do not compare an old fixture against a new, possibly permissive OpenAPI document.
+
+To check **actual producer response captures**, set `CONTOSO_CONSUMER_PRODUCER` to
+one producer below and `CONTOSO_CONSUMER_SAMPLES` to an absolute existing directory,
+then run that same command. Required coverage:
+
+| Producer | Required `schema` categories |
+| --- | --- |
+| `contoso-students` | `Student` |
+| `contoso-academics` | `Course`, `CoursePage` |
+| `contoso-enrollments` | `Enrollment`, `EnrollmentPage` |
+
+Each top-level `.json` file contains exactly one envelope:
+`{"schema":"Course","body":{...actual HTTP response JSON...}}`.
+Names are case-sensitive; filenames are arbitrary. Capture GET-by-ID bodies and
+list bodies (not OpenAPI schemas); `Enrollment` also exercises create-response
+deserialization with HTTP 201. IDs/pages are taken from the body and sent only to
+an injected offline handler. Every sample in a required category is exercised.
+Academics' `Department`, `DepartmentPage`, `Instructor`, `InstructorPage`, and
+Students' `StudentPage` envelopes may coexist but are not consumed by this Web app.
+No Department/Instructor/Student list endpoint or additional permission is required.
+
+Student fields consumed: positive `id`, nonblank `firstName`/`lastName`, nondefault
+`enrollmentDate`. Course: positive `id`/`departmentId`, nonblank `title`, integer
+`credits` 0–5, matching nested `department.id` and nonempty `department.name`.
+CoursePage: `courses`, `count`, `pages`, `currentPage`. Enrollment: positive
+`id`/`studentId`/`courseId`, `grade` (null or A/B/C/D/F); EnrollmentPage:
+`items`, `page`, `pageSize` (50), `totalCount`. Pages may legitimately be empty;
+detail envelopes are nevertheless mandatory. Extra unused response fields are allowed.
+
+The loader rejects partial/empty environment configuration, unrecognized producers
+or categories, missing coverage, nonobject envelopes/bodies, malformed JSON,
+traversal components, symlinks/reparse points (including directory ancestors),
+subdirectories and non-JSON files. Limits: 32 files, 1 MiB/file, 4 MiB total,
+JSON depth 32. Use a dedicated immutable artifact directory on a controlled runner;
+this is not an archive extractor or a sandbox against concurrent filesystem mutation.
+Samples are data only: no URL, script, token acquisition or network fetch is evaluated.
+Built-in CI also exercises the external entrypoint with explicitly synthetic envelopes;
+only the producer workflow can supply evidence that captures came from actual responses.
+Breaking bodies fail with the existing `BackendException`/502 path, not empty success.
+No live Entra, deployment or cross-service transaction correctness is claimed.
+
 Local tests/builds are not evidence of live Entra authorization-code federation, backend SQL, private networking, consent, telemetry ingestion or deployed end-to-end enrollment behavior. These must be verified by the platform/integration owners after provisioning and human approval. A bootstrapped repository, successful CI candidate and a deployed integrated environment are distinct states.

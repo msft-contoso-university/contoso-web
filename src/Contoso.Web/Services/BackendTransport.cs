@@ -26,7 +26,8 @@ public sealed class BackendTransport(IHttpClientFactory factory, IDelegatedToken
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        RespectRequiredConstructorParameters = true
+        RespectRequiredConstructorParameters = true,
+        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.Strict
     };
 
     public async Task<T> ReadAsync<T>(string service, string path, CancellationToken cancellationToken)

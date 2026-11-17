@@ -40,6 +40,27 @@ jobs:
         run: dotnet build -c Release --no-restore
       - name: Tests and captured client messages
         run: dotnet test -c Release --no-build --no-restore --logger trx
+      - name: Exercise external consumer sample entrypoint (synthetic only)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          fixtures = json.loads(Path("contracts/consumer-fixtures.json").read_text())
+          for producer, schemas in {
+              "contoso-students": {"Student": "student"},
+              "contoso-academics": {"Course": "course", "CoursePage": "courses"},
+              "contoso-enrollments": {"Enrollment": "enrollment", "EnrollmentPage": "enrollments"},
+          }.items():
+              directory = Path("artifacts/compatibility") / producer
+              directory.mkdir(parents=True, exist_ok=True)
+              for schema, fixture in schemas.items():
+                  (directory / (schema + ".json")).write_text(json.dumps({"schema": schema, "body": fixtures[fixture]}))
+          PY
+          for producer in contoso-students contoso-academics contoso-enrollments; do
+            CONTOSO_CONSUMER_PRODUCER="$producer" CONTOSO_CONSUMER_SAMPLES="$PWD/artifacts/compatibility/$producer" \
+              dotnet test tests/Contoso.Web.Tests --filter TestCategory=ConsumerCompatibility -c Release --no-build --no-restore
+          done
       - name: Consumer contracts
         run: |
           python -m pip install -r scripts/requirements.txt
