@@ -1,0 +1,7 @@
+{
+  "student": { "id": 7, "firstName": "Ada", "lastName": "Lovelace", "enrollmentDate": "2024-09-01T00:00:00Z" },
+  "course": { "id": 9, "title": "Applied mathematics", "credits": 4, "departmentId": 2, "department": { "id": 2, "name": "Science" } },
+  "courses": { "courses": [{ "id": 9, "title": "Applied mathematics", "credits": 4, "departmentId": 2, "department": { "id": 2, "name": "Science" } }], "count": 1, "pages": 1, "currentPage": 1 },
+  "enrollment": { "id": 3, "studentId": 7, "courseId": 9, "grade": null },
+  "enrollments": { "items": [{ "id": 3, "studentId": 7, "courseId": 9, "grade": null }], "page": 1, "pageSize": 50, "totalCount": 1 }
+}

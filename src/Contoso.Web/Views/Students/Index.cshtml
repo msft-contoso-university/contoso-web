@@ -1,0 +1,21 @@
+@model Student
+@{
+    ViewData["Title"] = "Students";
+}
+<p class="eyebrow">People / Student records</p>
+<h1>Find a student</h1>
+<p class="muted">Enter a university student ID. This workspace provides record lookup only.</p>
+<form method="get" class="panel compact">
+    <div asp-validation-summary="All" class="validation" role="alert"></div>
+    <label for="id">Student ID</label>
+    <input id="id" name="id" type="number" min="1" max="2147483647" required value="@Context.Request.Query["id"]" />
+    <button type="submit">Find student</button>
+</form>
+@if (Model is not null)
+{
+    <section class="panel" aria-label="Student record">
+        <h2>@Model.FirstName @Model.LastName</h2>
+        <dl><dt>Student ID</dt><dd>@Model.Id</dd><dt>Enrollment date</dt><dd>@Model.EnrollmentDate.ToString("yyyy-MM-dd")</dd></dl>
+        <a asp-controller="Enrollments" asp-action="Create">Create an enrollment</a>
+    </section>
+}

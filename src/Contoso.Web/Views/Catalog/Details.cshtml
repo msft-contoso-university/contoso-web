@@ -1,0 +1,11 @@
+@model Course
+@{
+    ViewData["Title"] = Model.Title;
+}
+<p class="eyebrow">Learning / Course @Model.Id</p>
+<h1>@Model.Title</h1>
+<section class="panel">
+    <dl><dt>Department</dt><dd>@Model.Department.Name</dd><dt>Credits</dt><dd>@Model.Credits</dd><dt>Course ID</dt><dd>@Model.Id</dd></dl>
+    <a class="button" asp-controller="Enrollments" asp-action="Create" asp-route-courseId="@Model.Id">Enroll a student</a>
+</section>
+<a asp-action="Index">← Back to catalog</a>

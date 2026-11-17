@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] · Contoso University</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header>
+        <div class="shell topbar">
+            <a class="brand" asp-controller="Home" asp-action="Index"><span class="crest" aria-hidden="true">CU</span> Contoso University</a>
+            <nav aria-label="Main navigation">
+                <a asp-controller="Students" asp-action="Index">Students</a>
+                <a asp-controller="Catalog" asp-action="Index">Catalog</a>
+                <a asp-controller="Enrollments" asp-action="Index">Enrollments</a>
+            </nav>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <form asp-controller="Account" asp-action="SignOutUser" method="post"><button class="quiet" type="submit">Sign out</button></form>
+            }
+            else
+            {
+                <a class="button" asp-controller="Account" asp-action="SignIn">Sign in</a>
+            }
+        </div>
+    </header>
+    <main id="main" class="shell">@RenderBody()</main>
+    <footer class="shell">Contoso University · Connected campus services <span>ADLC showcase</span></footer>
+</body>
+</html>

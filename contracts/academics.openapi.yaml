@@ -1,0 +1,678 @@
+openapi: 3.1.0
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+info:
+  title: Contoso Academics catalog
+  version: 1.0.0
+  description: |
+    Courses, departments and instructors owned by Academics; no enrollment
+    relationship crosses this service boundary. All views are explicit DTOs.
+    Dates are ISO date-only strings and properties use camelCase.
+    Unknown input properties are currently ignored.
+    POST rejects every nonnull body id. PUT accepts an absent/null id or an id
+    equal to the route id, otherwise returns 400.
+    catalog-read requires idtyp != app, delegated exact academics.read scope
+    AND Reader or Registrar role. course-lookup permits those delegated readers,
+    or idtyp=app AND Academics.Lookup role, ONLY for GET /api/v1/courses/{id}.
+    App-only tokens cannot enumerate courses or read departments/instructors.
+    Writes require idtyp != app, exact academics.write scope AND Registrar.
+    App-only tokens cannot write even with delegated-looking scopes/roles.
+    Delegated Lookup-only tokens cannot read. App registrations must emit idtyp.
+    Tenant, audience, issuer, signature and lifetime are validated using the
+    configured Entra tenant and audience; no fixed tenant is part of this contract.
+security:
+  - bearerJwt: []
+paths:
+  /api/v1/courses:
+    get:
+      operationId: listCourses
+      x-academics-policy: catalog-read
+      summary: Read a bounded course page
+      parameters:
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Course page ordered by id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoursePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      operationId: createCourse
+      x-academics-policy: catalog-write
+      summary: Create a course with an existing departmentId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInput'
+      responses:
+        '201':
+          description: Created course
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/v1/courses/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: getCourse
+      x-academics-policy: course-lookup
+      summary: Read one course
+      description: |
+        Delegated catalog readers or app-only idtyp=app with Academics.Lookup.
+        This is the only catalog operation available to app-only callers.
+      responses:
+        '200':
+          description: Course view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      operationId: updateCourse
+      x-academics-policy: catalog-write
+      summary: Replace course fields; a nonnull body id must match the route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CourseInput'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      operationId: deleteCourse
+      x-academics-policy: catalog-write
+      summary: Delete a course
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/v1/departments:
+    get:
+      operationId: listDepartments
+      x-academics-policy: catalog-read
+      summary: Read a bounded department page
+      parameters:
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Department page ordered by id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      operationId: createDepartment
+      x-academics-policy: catalog-write
+      summary: Create a department; a nonnull instructorId must exist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentInput'
+      responses:
+        '201':
+          description: Created department
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/v1/departments/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: getDepartment
+      x-academics-policy: catalog-read
+      summary: Read one department
+      responses:
+        '200':
+          description: Department view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      operationId: updateDepartment
+      x-academics-policy: catalog-write
+      summary: Replace department fields; a nonnull body id must match the route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentInput'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      operationId: deleteDepartment
+      x-academics-policy: catalog-write
+      summary: Delete a department; existing course references return 409
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/v1/instructors:
+    get:
+      operationId: listInstructors
+      x-academics-policy: catalog-read
+      summary: Read a bounded instructor page
+      parameters:
+        - $ref: '#/components/parameters/Page'
+      responses:
+        '200':
+          description: Instructor page ordered by id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      operationId: createInstructor
+      x-academics-policy: catalog-write
+      summary: Create an instructor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorInput'
+      responses:
+        '201':
+          description: Created instructor
+          headers:
+            Location:
+              $ref: '#/components/headers/Location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructor'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/v1/instructors/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: getInstructor
+      x-academics-policy: catalog-read
+      summary: Read one instructor
+      responses:
+        '200':
+          description: Instructor view
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructor'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    put:
+      operationId: updateInstructor
+      x-academics-policy: catalog-write
+      summary: Replace instructor fields; a nonnull body id must match the route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorInput'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      operationId: deleteInstructor
+      x-academics-policy: catalog-write
+      summary: Delete an instructor; existing department references return 409
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /health/live:
+    get:
+      operationId: liveness
+      security: []
+      responses:
+        '200':
+          description: Process is responding; does not check dependencies
+          content:
+            text/plain:
+              schema:
+                type: string
+  /health/ready:
+    get:
+      operationId: readiness
+      security: []
+      responses:
+        '200':
+          description: Database connected and migrations present with none pending
+          content:
+            text/plain:
+              schema:
+                type: string
+        '503':
+          description: Database unavailable or migration state not ready
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  securitySchemes:
+    bearerJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Entra bearer JWT. catalog-read, course-lookup and catalog-write operation extensions
+        select the exact scope/role/idtyp rules in the API description.
+        These rules are not expressible as HTTP bearer scopes in OpenAPI.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/PositiveId'
+    Page:
+      name: page
+      in: query
+      required: false
+      description: |
+        Fixed page size 50, ordered by id. Nonpositive values normalize to 1.
+        Values beyond the last page return an empty array, including int.MaxValue
+        without arithmetic overflow. Non-int32 input returns 400.
+      schema:
+        type: integer
+        format: int32
+        minimum: -2147483648
+        maximum: 2147483647
+        default: 1
+  headers:
+    Location:
+      required: true
+      description: URI of the created item
+      schema:
+        type: string
+        format: uri-reference
+  responses:
+    NoContent:
+      description: Successful update or deletion; no response body
+    BadRequest:
+      description: Invalid body, query, foreign key reference, supplied POST id or PUT id mismatch
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Unauthorized:
+      description: Missing or invalid bearer JWT; response body is not guaranteed
+    Forbidden:
+      description: Valid JWT does not satisfy the operation policy; response body is not guaranteed
+    NotFound:
+      description: Item does not exist (invalid route ids also do not match)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    Conflict:
+      description: Referenced item cannot be deleted, or SQL concurrency, unique key or foreign key conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+    ServerError:
+      description: Generic unexpected error; no internal exception details
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+  schemas:
+    PositiveId:
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 2147483647
+    OptionalId:
+      type: [integer, 'null']
+      format: int32
+      minimum: 1
+      maximum: 2147483647
+      description: Optional; POST permits only omitted/null, PUT permits omitted/null or the route id
+    Money:
+      type: number
+      minimum: -922337203685477.5808
+      maximum: 922337203685477.5807
+      description: SQL money range; persistence has four decimal places (input need not be four-place)
+    InstructorInput:
+      type: object
+      required: [firstName, lastName, hireDate]
+      properties:
+        id:
+          $ref: '#/components/schemas/OptionalId'
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '\S'
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '\S'
+        hireDate:
+          type: string
+          format: date
+    DepartmentInput:
+      type: object
+      required: [name, budget, startDate]
+      properties:
+        id:
+          $ref: '#/components/schemas/OptionalId'
+        name:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '\S'
+        budget:
+          $ref: '#/components/schemas/Money'
+        startDate:
+          type: string
+          format: date
+        instructorId:
+          type: [integer, 'null']
+          format: int32
+          minimum: 1
+          maximum: 2147483647
+          description: If nonnull, must reference an existing instructor
+    CourseInput:
+      type: object
+      required: [title, credits, departmentId]
+      properties:
+        id:
+          $ref: '#/components/schemas/OptionalId'
+        title:
+          type: string
+          minLength: 3
+          maxLength: 50
+          pattern: '\S'
+        credits:
+          type: integer
+          minimum: 0
+          maximum: 5
+        departmentId:
+          $ref: '#/components/schemas/PositiveId'
+          description: Must reference an existing department
+    Instructor:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName, hireDate]
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        firstName:
+          type: string
+        lastName:
+          type: string
+        hireDate:
+          type: string
+          format: date
+    DepartmentSummary:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        name:
+          type: string
+    Department:
+      type: object
+      additionalProperties: false
+      required: [id, name, budget, startDate, instructorId, instructor]
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        name:
+          type: string
+        budget:
+          $ref: '#/components/schemas/Money'
+        startDate:
+          type: string
+          format: date
+        instructorId:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 2147483647
+        instructor:
+          anyOf:
+            - $ref: '#/components/schemas/Instructor'
+            - type: 'null'
+    Course:
+      type: object
+      additionalProperties: false
+      required: [id, title, credits, departmentId, department]
+      properties:
+        id:
+          $ref: '#/components/schemas/PositiveId'
+        title:
+          type: string
+        credits:
+          type: integer
+          minimum: 0
+          maximum: 5
+        departmentId:
+          $ref: '#/components/schemas/PositiveId'
+        department:
+          $ref: '#/components/schemas/DepartmentSummary'
+    Pagination:
+      type: object
+      required: [count, pages, currentPage]
+      properties:
+        count:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        pages:
+          type: integer
+          minimum: 0
+          maximum: 42949673
+        currentPage:
+          $ref: '#/components/schemas/PositiveId'
+    InstructorPage:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          required: [instructors]
+          properties:
+            instructors:
+              type: array
+              maxItems: 50
+              items:
+                $ref: '#/components/schemas/Instructor'
+      unevaluatedProperties: false
+    DepartmentPage:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          required: [departments]
+          properties:
+            departments:
+              type: array
+              maxItems: 50
+              items:
+                $ref: '#/components/schemas/Department'
+      unevaluatedProperties: false
+    CoursePage:
+      allOf:
+        - $ref: '#/components/schemas/Pagination'
+        - type: object
+          required: [courses]
+          properties:
+            courses:
+              type: array
+              maxItems: 50
+              items:
+                $ref: '#/components/schemas/Course'
+      unevaluatedProperties: false
+    ProblemDetails:
+      type: object
+      description: Problem details including validation errors and other extension members
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        title:
+          type: [string, 'null']
+        status:
+          type: integer
+          minimum: 100
+          maximum: 599
+        detail:
+          type: [string, 'null']
+        instance:
+          type: [string, 'null']
