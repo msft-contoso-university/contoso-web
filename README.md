@@ -95,7 +95,11 @@ This publishes a framework-dependent root-level App Service ZIP (`Contoso.Web.dl
 
 The central **contoso-platform** repository owns the one azd/Bicep lifecycle, hosting, identity, network, telemetry permissions and promotion of the **same immutable artifact** through dev/staging. There is intentionally no `azure.yaml`, app-owned IaC, deployment job or Azure credential here.
 
-CI runs on every branch push, PR and dispatch: locked restore, formatting, warnings-as-errors build/tests, pinned consumer checks, vulnerability audit and candidate artifact. `Required checks` fails on unexpected skipped/cancelled/failed prerequisite jobs. On PRs the pinned engineering Story gate additionally requires a linked complete story and **human-audited** `ready-for-agent`; agents must not apply acceptance, approve or merge. Without that human action a draft PR's Story gate is expected to fail honestly.
+CI runs on every branch push, PR and dispatch: locked restore, formatting, warnings-as-errors build/tests, pinned consumer checks, vulnerability audit and candidate artifact. A separate read-only **Candidate CodeQL** job uses pinned init/analyze actions, `security-extended`, `build-mode: none` and C#, Actions and Python analysis (Python is used by this repository's validation/packaging scripts). It does not upload analysis to code scanning or request `security-events: write`. Each expected language must produce SARIF 2.1.0 with nonempty CodeQL runs, no results (including suppressed findings) and no explicitly unsuccessful invocations. Missing, malformed or non-clean evidence fails the job; SARIF is retained as a workflow artifact, including on failure.
+
+`Required checks` depends on build/test verification **and** Candidate CodeQL and fails on unexpected skipped/cancelled/failed prerequisite jobs. On PRs the pinned engineering Story gate additionally requires a linked complete story and **human-audited** `ready-for-agent`; agents must not apply acceptance, approve or merge. Without that human action a draft PR's Story gate is expected to fail honestly.
+
+Native CodeQL default setup remains enabled and unchanged. Candidate SARIF is review evidence, **not registered code scanning alerts**. A README-only `main` cannot yet enable languages absent from that branch; maintainers must re-evaluate native default-setup language coverage after an approved source merge. A clean candidate report is not human approval or a deployment authorization.
 
 ## Evidence limits
 

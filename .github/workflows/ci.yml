@@ -61,20 +61,55 @@ jobs:
             artifacts/audit.json
             artifacts/consumer-interactions.json
 
+  codeql:
+    name: Candidate CodeQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066
+        with:
+          languages: csharp,actions,python
+          build-mode: none
+          queries: security-extended
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066
+        with:
+          upload: false
+          output: artifacts/codeql
+      - name: Require complete clean candidate analysis
+        if: ${{ !cancelled() }}
+        run: |
+          python -m unittest discover -s scripts -p test_check_codeql.py
+          python scripts/check_codeql.py artifacts/codeql
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: codeql-candidate-${{ github.sha }}
+          path: artifacts/codeql
+          if-no-files-found: error
+          retention-days: 7
+
   required:
     name: Required checks
     if: always()
-    needs: [story, verify]
+    needs: [story, verify, codeql]
     runs-on: ubuntu-24.04
     env:
       STORY: ${{ needs.story.result }}
       VERIFY: ${{ needs.verify.result }}
+      CODEQL: ${{ needs.codeql.result }}
       EVENT: ${{ github.event_name }}
     steps:
       - name: Require actual successful checks
         shell: bash
         run: |
           test "$VERIFY" = success
+          test "$CODEQL" = success
           if [ "$EVENT" = pull_request ]; then
             test "$STORY" = success
           else
