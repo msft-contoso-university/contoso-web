@@ -1,0 +1,26 @@
+{
+  "students": {
+    "repository": "msft-contoso-university/contoso-students",
+    "commit": "0f9043cb862e5d20644efb32dc690baa16a100a7",
+    "path": "contracts/students.openapi.yaml",
+    "file": "students.openapi.yaml",
+    "sha256": "c43f495a86d10e496bfb1de751a37d7db0bc17681f0b9ca06fd191a1edca5148",
+    "provenance": "Published candidate; pinning does not imply approval or release."
+  },
+  "academics": {
+    "repository": "msft-contoso-university/contoso-academics",
+    "commit": "2eebfe00836c54564bd6519667094f4f71e48dc2",
+    "path": "contracts/academics.openapi.yaml",
+    "file": "academics.openapi.yaml",
+    "sha256": "3133095c661eec815ffb85c136a33184369087a6edfd4769a60117d7aa5db478",
+    "provenance": "Published candidate; pinning does not imply approval or release."
+  },
+  "enrollments": {
+    "repository": "msft-contoso-university/contoso-enrollments",
+    "commit": "c744bb69e43760ff6bf81ac50d83cbf57bd763af",
+    "path": "contracts/enrollments.openapi.yaml",
+    "file": "enrollments.openapi.yaml",
+    "sha256": "56cfd1c3612d16356fe98d375869fc3dfaccfd3e5eef8fd18d23583660784f64",
+    "provenance": "Published contract-only candidate; pinning does not imply approval or release."
+  }
+}

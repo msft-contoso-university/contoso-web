@@ -1,0 +1,11 @@
+@model Enrollment
+@{
+    ViewData["Title"] = "Delete enrollment";
+}
+<p class="eyebrow">Progress / Enrollment @Model.Id</p>
+<h1>Delete enrollment?</h1>
+<section class="panel">
+    <p>Remove student @Model.StudentId from course @Model.CourseId? This cannot be undone.</p>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post"><button class="danger" type="submit">Delete enrollment</button></form>
+</section>
+<a asp-action="Index">Cancel</a>

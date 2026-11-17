@@ -1,0 +1,18 @@
+@model EnrollmentInput
+@{
+    ViewData["Title"] = "New enrollment";
+}
+<p class="eyebrow">Progress / Registration</p>
+<h1>New enrollment</h1>
+<p class="muted">The service verifies the student and course. Registrar access is required.</p>
+<form asp-action="Create" method="post" class="panel compact">
+    <div asp-validation-summary="All" class="validation" role="alert"></div>
+    <label asp-for="StudentId"></label>
+    <input asp-for="StudentId" type="number" min="1" max="2147483647" required />
+    <label asp-for="CourseId"></label>
+    <input asp-for="CourseId" type="number" min="1" max="2147483647" required />
+    <label asp-for="Grade"></label>
+    <select asp-for="Grade"><option value="">Ungraded</option><option>A</option><option>B</option><option>C</option><option>D</option><option>F</option></select>
+    <button type="submit">Create enrollment</button>
+</form>
+<a asp-action="Index">Cancel</a>

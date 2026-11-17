@@ -1,0 +1,82 @@
+name: CI
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, ready_for_review, converted_to_draft, labeled, unlabeled]
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  story:
+    name: Story gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: msft-contoso-university/contoso-engineering/.github/actions/story-gate@177851bad37f10f6b68c8d864e470ee743288e59
+        with:
+          github-token: ${{ github.token }}
+
+  verify:
+    name: Build, test, contracts and candidate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14'
+      - name: Locked audited restore
+        run: dotnet restore --locked-mode
+      - name: Formatting
+        run: dotnet format --no-restore --verify-no-changes
+      - name: Build
+        run: dotnet build -c Release --no-restore
+      - name: Tests and captured client messages
+        run: dotnet test -c Release --no-build --no-restore --logger trx
+      - name: Consumer contracts
+        run: |
+          python -m pip install -r scripts/requirements.txt
+          python scripts/check_contracts.py
+      - name: Audit direct and transitive packages
+        run: |
+          dotnet list package --vulnerable --include-transitive --format json --no-restore > artifacts/audit.json
+          python scripts/check_audit.py artifacts/audit.json
+      - name: Package immutable candidate without deployment
+        run: python scripts/package.py
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: contoso-web-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            artifacts/contoso-web-*.zip
+            artifacts/candidate.json
+            artifacts/SHA256SUMS
+            artifacts/audit.json
+            artifacts/consumer-interactions.json
+
+  required:
+    name: Required checks
+    if: always()
+    needs: [story, verify]
+    runs-on: ubuntu-24.04
+    env:
+      STORY: ${{ needs.story.result }}
+      VERIFY: ${{ needs.verify.result }}
+      EVENT: ${{ github.event_name }}
+    steps:
+      - name: Require actual successful checks
+        shell: bash
+        run: |
+          test "$VERIFY" = success
+          if [ "$EVENT" = pull_request ]; then
+            test "$STORY" = success
+          else
+            test "$STORY" = skipped
+          fi

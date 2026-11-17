@@ -1,0 +1,19 @@
+@model GradeInput
+@{
+    var enrollment = ViewData["Enrollment"] as Enrollment;
+    var id = enrollment?.Id ?? (int)ViewData["Id"]!;
+    ViewData["Title"] = "Update grade";
+}
+<p class="eyebrow">Progress / Enrollment @id</p>
+<h1>Update grade</h1>
+@if (enrollment is not null)
+{
+    <p class="muted">Student @enrollment.StudentId · Course @enrollment.CourseId</p>
+}
+<form asp-action="Edit" asp-route-id="@id" method="post" class="panel compact">
+    <div asp-validation-summary="All" class="validation" role="alert"></div>
+    <label asp-for="Grade"></label>
+    <select asp-for="Grade"><option value="">Ungraded</option><option>A</option><option>B</option><option>C</option><option>D</option><option>F</option></select>
+    <button type="submit">Save grade</button>
+</form>
+<a asp-action="Index">Cancel</a>

@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: Contoso Enrollments API
+  version: 1.0.0
+  description: Delegated reads require enrollments.read and Reader or Registrar; writes require enrollments.write and Registrar. App-only access is not supported.
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/enrollments:
+    get:
+      operationId: listEnrollments
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 100000, default: 1 } }
+        - { name: studentId, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: courseId, in: query, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200':
+          description: A page of up to 50 enrollments.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EnrollmentPage' }
+        '400': { description: Invalid query. }
+        '401': { description: Invalid authentication. }
+        '403': { description: Insufficient permission. }
+    post:
+      operationId: createEnrollment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateEnrollment' }
+      responses:
+        '201':
+          description: Created enrollment.
+          headers:
+            Location: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Enrollment' }
+        '400': { description: Invalid request or missing student or course. }
+        '401': { description: Invalid authentication. }
+        '403': { description: Insufficient permission. }
+        '409': { description: Student and course pair already exists. }
+        '503': { description: Student or course lookup unavailable or unauthorized. }
+  /api/v1/enrollments/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      operationId: getEnrollment
+      responses:
+        '200':
+          description: Enrollment.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Enrollment' }
+        '401': { description: Invalid authentication. }
+        '403': { description: Insufficient permission. }
+        '404': { description: Not found. }
+    put:
+      operationId: updateEnrollment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateEnrollment' }
+      responses:
+        '204': { description: Grade updated. }
+        '400': { description: Invalid grade. }
+        '401': { description: Invalid authentication. }
+        '403': { description: Insufficient permission. }
+        '404': { description: Not found. }
+        '409': { description: Concurrent modification. }
+    delete:
+      operationId: deleteEnrollment
+      responses:
+        '204': { description: Deleted. }
+        '401': { description: Invalid authentication. }
+        '403': { description: Insufficient permission. }
+        '404': { description: Not found. }
+        '409': { description: Concurrent modification. }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    Grade:
+      type: string
+      nullable: true
+      enum: [A, B, C, D, F, null]
+    Enrollment:
+      type: object
+      required: [id, studentId, courseId, grade]
+      properties:
+        id: { type: integer, minimum: 1 }
+        studentId: { type: integer, minimum: 1 }
+        courseId: { type: integer, minimum: 1 }
+        grade: { $ref: '#/components/schemas/Grade' }
+    CreateEnrollment:
+      type: object
+      required: [studentId, courseId, grade]
+      properties:
+        studentId: { type: integer, minimum: 1 }
+        courseId: { type: integer, minimum: 1 }
+        grade: { $ref: '#/components/schemas/Grade' }
+    UpdateEnrollment:
+      type: object
+      required: [grade]
+      properties:
+        grade: { $ref: '#/components/schemas/Grade' }
+    EnrollmentPage:
+      type: object
+      required: [items, page, pageSize, totalCount]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Enrollment' }
+        page: { type: integer }
+        pageSize: { type: integer, enum: [50] }
+        totalCount: { type: integer }

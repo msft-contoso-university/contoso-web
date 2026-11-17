@@ -1,0 +1,15 @@
+@{
+    ViewData["Title"] = "Campus services";
+}
+<section class="hero">
+    <p class="eyebrow">Learning without limits</p>
+    <h1>Your campus.<br />Connected.</h1>
+    <p>Find student records, explore the course catalog and manage enrollments in one secure workspace.</p>
+    <a class="button" asp-controller="Catalog" asp-action="Index">Explore the catalog <span aria-hidden="true">→</span></a>
+</section>
+<div class="cards">
+    <section class="panel"><p class="eyebrow">01 / People</p><h2>Student records</h2><p>Look up a student by their university ID.</p><a asp-controller="Students" asp-action="Index">Find a student →</a></section>
+    <section class="panel"><p class="eyebrow">02 / Learning</p><h2>Course catalog</h2><p>Browse courses, credits and departments.</p><a asp-controller="Catalog" asp-action="Index">Browse courses →</a></section>
+    <section class="panel"><p class="eyebrow">03 / Progress</p><h2>Enrollments</h2><p>View registrations and maintain grades with the appropriate service permissions.</p><a asp-controller="Enrollments" asp-action="Index">Open enrollments →</a></section>
+</div>
+<p class="muted">Sign in with your university account. Access depends on permissions assigned to each service.</p>
