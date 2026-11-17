@@ -1,6 +1,7 @@
 """Build and package a clean source revision; this script never deploys."""
 import hashlib
 import json
+import os
 import re
 import subprocess
 import zipfile
@@ -13,6 +14,8 @@ def main():
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     if not re.fullmatch(r"[a-f0-9]{40}", sha):
         raise ValueError("An exact source commit is required")
+    if "GITHUB_SHA" in os.environ and os.environ["GITHUB_SHA"] != sha:
+        raise ValueError("Checkout SHA does not match workflow SHA")
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True).strip():
         raise ValueError("Refusing to label a dirty working tree as an immutable source candidate")
     output = ROOT / "artifacts" / "publish"
@@ -20,7 +23,7 @@ def main():
         raise ValueError("Remove the old artifacts/publish directory before creating a new candidate")
     subprocess.run(
         ["dotnet", "publish", str(ROOT / "src" / "Contoso.Web" / "Contoso.Web.csproj"),
-         "-c", "Release", "--no-restore", "-o", str(output)],
+         "-c", "Release", "--no-build", "--no-restore", "-o", str(output)],
         cwd=ROOT, check=True,
     )
     files = sorted(path for path in output.rglob("*") if path.is_file())

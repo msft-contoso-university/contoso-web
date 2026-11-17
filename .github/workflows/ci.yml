@@ -24,8 +24,11 @@ jobs:
   verify:
     name: Build, test, contracts and candidate
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
         with:
           global-json-file: global.json
@@ -73,12 +76,18 @@ jobs:
         run: python scripts/package.py
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: contoso-web-${{ github.sha }}
+          name: untrusted-candidate-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: error
           path: |
             artifacts/contoso-web-*.zip
             artifacts/candidate.json
             artifacts/SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: web-test-evidence-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
             artifacts/audit.json
             artifacts/consumer-interactions.json
 
@@ -110,7 +119,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
-          name: codeql-candidate-${{ github.sha }}
+          name: codeql-candidate-${{ github.sha }}-${{ github.run_attempt }}
           path: artifacts/codeql
           if-no-files-found: error
           retention-days: 7

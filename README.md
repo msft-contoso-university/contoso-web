@@ -93,6 +93,13 @@ python scripts\package.py
 
 This publishes a framework-dependent root-level App Service ZIP (`Contoso.Web.dll`, startup `dotnet Contoso.Web.dll`), embeds `candidate.json` with the exact source SHA and per-file SHA256 hashes, and emits `SHA256SUMS` for the ZIP. Deterministic SourceLink paths are normalized; packaging rejects embedded checkout/home paths. Existing `artifacts\publish` output must be removed before re-packaging. Build/publish does not deploy.
 
+CI uploads `untrusted-candidate-${github.sha}-${github.run_id}-${github.run_attempt}`
+containing only `contoso-web-<source-sha>.zip`, `candidate.json` and `SHA256SUMS`.
+The embedded and external manifests match; per-file hashes exclude the manifest
+itself, while the outer ZIP hash covers it. Run/attempt qualification avoids
+rerun artifact collisions. Test/audit evidence is separate. Neither these
+artifact-reported hashes nor a passing build constitute promotion approval.
+
 The central **contoso-platform** repository owns the one azd/Bicep lifecycle, hosting, identity, network, telemetry permissions and promotion of the **same immutable artifact** through dev/staging. There is intentionally no `azure.yaml`, app-owned IaC, deployment job or Azure credential here.
 
 CI runs on every branch push, PR and dispatch: locked restore, formatting, warnings-as-errors build/tests, pinned consumer checks, vulnerability audit and candidate artifact. A separate read-only **Candidate CodeQL** job uses pinned init/analyze actions, `security-extended`, `build-mode: none` and C#, Actions and Python analysis (Python is used by this repository's validation/packaging scripts). It does not upload analysis to code scanning or request `security-events: write`. Each expected language must produce SARIF 2.1.0 with nonempty CodeQL runs, no results (including suppressed findings) and no explicitly unsuccessful invocations. Missing, malformed or non-clean evidence fails the job; SARIF is retained as a workflow artifact, including on failure.
