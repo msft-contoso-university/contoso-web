@@ -78,6 +78,15 @@ if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("
 }
 var app = builder.Build();
 ServiceConfiguration.Validate(app.Configuration, app.Environment);
+if (app.Configuration.GetValue<bool>("Hosting:AppServiceHttpsOnly"))
+{
+    // App Service must enforce HTTPS-only ingress; client-supplied forwarding headers are not trusted.
+    app.Use((context, next) =>
+    {
+        context.Request.Scheme = Uri.UriSchemeHttps;
+        return next(context);
+    });
+}
 app.UseExceptionHandler("/home/error");
 if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {

@@ -102,6 +102,17 @@ artifact-reported hashes nor a passing build constitute promotion approval.
 
 The central **contoso-platform** repository owns the one azd/Bicep lifecycle, hosting, identity, network, telemetry permissions and promotion of the **same immutable artifact** through dev/staging. There is intentionally no `azure.yaml`, app-owned IaC, deployment job or Azure credential here.
 
+For App Service TLS termination, platform must enforce site `httpsOnly: true`,
+set `Hosting__AppServiceHttpsOnly=true`, `ASPNETCORE_FORWARDEDHEADERS_ENABLED=false`
+and exact `AllowedHosts` equal to the platform's native `WEBSITE_HOSTNAME`.
+Native `WEBSITE_SITE_NAME`/`WEBSITE_HOSTNAME` metadata must be present. The worker's
+HTTP connection is then treated as HTTPS before redirects, HSTS and OIDC; no
+`X-Forwarded-*` header or guessed proxy CIDR is trusted. Startup rejects missing
+or inconsistent boundary settings and trust-all forwarded-header mode. This
+contract assumes App Service is the only worker ingress and must not be enabled
+on an independently HTTP-reachable Kestrel host. Custom domains/multiple frontend
+hosts require a separately reviewed boundary configuration.
+
 CI runs on every branch push, PR and dispatch: locked restore, formatting, warnings-as-errors build/tests, pinned consumer checks, vulnerability audit and candidate artifact. A separate read-only **Candidate CodeQL** job uses pinned init/analyze actions, `security-extended`, `build-mode: none` and C#, Actions and Python analysis (Python is used by this repository's validation/packaging scripts). It does not upload analysis to code scanning or request `security-events: write`. Each expected language must produce SARIF 2.1.0 with nonempty CodeQL runs, no results (including suppressed findings) and no explicitly unsuccessful invocations. Missing, malformed or non-clean evidence fails the job; SARIF is retained as a workflow artifact, including on failure.
 
 `Required checks` depends on build/test verification **and** Candidate CodeQL and fails on unexpected skipped/cancelled/failed prerequisite jobs. On PRs the pinned engineering Story gate additionally requires a linked complete story and **human-audited** `ready-for-agent`; agents must not apply acceptance, approve or merge. Without that human action a draft PR's Story gate is expected to fail honestly.

@@ -3,9 +3,16 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.Identity.Abstractions;
 using Microsoft.Identity.Web;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -17,6 +24,47 @@ namespace Contoso.Web.Tests;
 [TestClass]
 public sealed class WebTests
 {
+    [TestMethod]
+    public async Task AppServiceHttpsBoundaryIgnoresSpoofedHeadersWithoutRedirectLoops()
+    {
+        await using var original = new WebFactory();
+        await using var app = original.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["Hosting:AppServiceHttpsOnly"] = "true",
+                    ["WEBSITE_SITE_NAME"] = "web",
+                    ["WEBSITE_HOSTNAME"] = "web.example.test",
+                    ["AllowedHosts"] = "web.example.test"
+                }));
+            builder.ConfigureTestServices(services =>
+                services.Configure<OpenIdConnectOptions>(OpenIdConnectDefaults.AuthenticationScheme, options =>
+                    options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(
+                        new OpenIdConnectConfiguration
+                        {
+                            Issuer = "https://login.example.test",
+                            AuthorizationEndpoint = "https://login.example.test/authorize"
+                        })));
+        });
+        using var browser = app.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            BaseAddress = new Uri("http://web.example.test"),
+            AllowAutoRedirect = false
+        });
+        browser.DefaultRequestHeaders.Add("X-Forwarded-Proto", "http");
+        browser.DefaultRequestHeaders.Add("X-Forwarded-Host", "attacker.example.test");
+        Assert.AreEqual(HttpStatusCode.OK, (await browser.GetAsync("/health/live")).StatusCode);
+        var signIn = await browser.GetAsync("/account/signin");
+        Assert.AreEqual(HttpStatusCode.Redirect, signIn.StatusCode);
+        var location = signIn.Headers.Location!;
+        Assert.AreEqual("login.example.test", location.Host);
+        Assert.AreEqual("https://web.example.test/signin-oidc",
+            QueryHelpers.ParseQuery(location.Query)["redirect_uri"].ToString());
+        browser.DefaultRequestHeaders.Host = "attacker.example.test";
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await browser.GetAsync("/health/live")).StatusCode);
+    }
+
     [TestMethod]
     public async Task LandingAndHealthArePublicButRecordsRequireAuthentication()
     {

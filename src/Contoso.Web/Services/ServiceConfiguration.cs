@@ -6,6 +6,23 @@ public static class ServiceConfiguration
 
     public static void Validate(IConfiguration config, IHostEnvironment environment)
     {
+        if (config.GetValue<bool>("ASPNETCORE_FORWARDEDHEADERS_ENABLED")
+            || config.GetValue<bool>("FORWARDEDHEADERS_ENABLED"))
+        {
+            throw new InvalidOperationException("Trust-all forwarded headers are unsupported; configure the explicit hosting boundary.");
+        }
+        var appServiceHost = config["WEBSITE_HOSTNAME"];
+        var appServiceHttpsOnly = config.GetValue<bool>("Hosting:AppServiceHttpsOnly");
+        if (appServiceHttpsOnly || !string.IsNullOrEmpty(appServiceHost))
+        {
+            var hosts = config["AllowedHosts"]?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+            if (!appServiceHttpsOnly || string.IsNullOrWhiteSpace(config["WEBSITE_SITE_NAME"])
+                || Uri.CheckHostName(appServiceHost ?? "") != UriHostNameType.Dns
+                || hosts.Length != 1 || !string.Equals(hosts[0], appServiceHost, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("App Service requires the HTTPS-only platform boundary, native site/hostname metadata and that exact AllowedHosts value.");
+            }
+        }
         foreach (var key in new[] { "AzureAd:TenantId", "AzureAd:ClientId" })
         {
             if (!Guid.TryParse(config[key], out var value) || value == Guid.Empty)

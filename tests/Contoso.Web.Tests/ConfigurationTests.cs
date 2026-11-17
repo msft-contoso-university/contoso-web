@@ -42,6 +42,26 @@ public sealed class ConfigurationTests
         ServiceConfiguration.Validate(configuration, new EnvironmentStub("Production"));
     }
 
+    [TestMethod]
+    [DataRow("Hosting:AppServiceHttpsOnly", "false")]
+    [DataRow("WEBSITE_SITE_NAME", "")]
+    [DataRow("WEBSITE_HOSTNAME", "")]
+    [DataRow("AllowedHosts", "*")]
+    [DataRow("AllowedHosts", "another.example.test")]
+    [DataRow("ASPNETCORE_FORWARDEDHEADERS_ENABLED", "true")]
+    [DataRow("FORWARDEDHEADERS_ENABLED", "true")]
+    public void AppServiceRequiresAnExplicitHttpsBoundaryAndExactHost(string key, string value)
+    {
+        var values = WebFactory.Configuration();
+        values["Hosting:AppServiceHttpsOnly"] = "true";
+        values["WEBSITE_SITE_NAME"] = "web";
+        values["WEBSITE_HOSTNAME"] = "web.example.test";
+        values["AllowedHosts"] = "web.example.test";
+        values[key] = value;
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+        Assert.ThrowsExactly<InvalidOperationException>(() => ServiceConfiguration.Validate(configuration, new EnvironmentStub("Testing")));
+    }
+
     private sealed class EnvironmentStub(string name) : IHostEnvironment
     {
         public string EnvironmentName { get; set; } = name;
